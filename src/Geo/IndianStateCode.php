@@ -49,7 +49,7 @@ enum IndianStateCode: int
 
     public function label(): string
     {
-        return match ($this) {
+        $label= match ($this) {
             self::JammuAndKashmir => 'Jammu and Kashmir',
             self::HimachalPradesh => 'Himachal Pradesh',
             self::Punjab => 'Punjab',
@@ -89,5 +89,7 @@ enum IndianStateCode: int
             self::OtherTerritory => 'Other Territory',
             self::OtherCountry => 'Other Country',
         };
+
+        return $this->value . ' - ' . $label;
     }
 }
