@@ -71,9 +71,19 @@ Check if an enum exists within an iterable collection.
 Status::Active->in([Status::Inactive, Status::Active]); // true
 Status::Active->notIn([Status::Inactive]);              // true
 ```
-- Ignores non-enum values safely
-
 - Uses strict enum identity comparison
+
+`normalCase()`
+
+Converts the enum case name into a human-readable string (e.g., `UserStatus` into `User Status`). If a `label()` method exists on the enum, it will be used instead.
+
+```php
+// Converts PascalCase names:
+UserStatus::ActiveMember->normalCase(); // "Active Member"
+
+// Prefers label() method if defined:
+PaymentStatus::Pending->normalCase(); // "Not Received"
+```
 
 `__invoke()`
 
@@ -110,6 +120,38 @@ Returns:
 PaymentStatus::values();  // [1, 2]
 
 Status::values();         // ["Active", "Inactive"]
+```
+
+`only()` / `except()`
+
+Filter the list of enum cases.
+
+```php
+Status::only(['Active']); // [Status::Active]
+Status::except(['Inactive']); // [Status::Active]
+```
+
+`fromName()` / `tryFromName()`
+
+Retrieve an enum case by its string name.
+
+```php
+Status::fromName('Active'); // Status::Active
+Status::tryFromName('Unknown'); // null
+```
+
+`toDefinition()`
+
+Generates a structured map of the enum, useful for frontend synchronization or complex definitions.
+
+```php
+PaymentStatus::toDefinition(['label']);
+
+// Output
+[
+    'Pending' => ['value' => 1, 'label' => 'Pending'],
+    'Paid' => ['value' => 2, 'label' => 'Paid'],
+]
 ```
 
 `options()`

@@ -16,7 +16,7 @@ trait InteractWithCases
 
     public function isNot(UnitEnum $enum): bool
     {
-        return ! $this->is($enum);
+        return !$this->is($enum);
     }
 
     public function in(iterable $enums): bool
@@ -32,7 +32,7 @@ trait InteractWithCases
 
     public function notIn(iterable $enums): bool
     {
-        return ! $this->in($enums);
+        return !$this->in($enums);
     }
 
     public static function names(): array
@@ -51,11 +51,43 @@ trait InteractWithCases
 
     public function normalCase(): string
     {
+        if (method_exists($this, 'label')) {
+            return $this->label();
+        }
+
         return preg_replace(
             '/(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])/',
             ' ',
             $this->name
         ) ?? $this->name;
+    }
+
+    /**
+     * Return only specific cases by name.
+     *
+     * @param array<int, string> $names
+     * @return static[]
+     */
+    public static function only(array $names): array
+    {
+        return array_filter(
+            static::cases(),
+            fn($case) => in_array($case->name, $names, true)
+        );
+    }
+
+    /**
+     * Return all cases except those specified by name.
+     *
+     * @param array<int, string> $names
+     * @return static[]
+     */
+    public static function except(array $names): array
+    {
+        return array_filter(
+            static::cases(),
+            fn($case) => !in_array($case->name, $names, true)
+        );
     }
 
     public static function options(
@@ -82,11 +114,64 @@ trait InteractWithCases
 
             $options[] = [
                 $valueKey => $value,
-                $nameKey  => $label,
+                $nameKey => $label,
             ];
         }
 
         return $options;
+    }
+
+    /**
+     * Return a structured map of the enum cases.
+     *
+     * @param array<int, string> $with
+     * @return array<string, array<string, mixed>>
+     */
+    public static function toDefinition(array $with = []): array
+    {
+        $definitions = [];
+
+        foreach (static::cases() as $case) {
+            $value = $case instanceof BackedEnum ? $case->value : $case->name;
+
+            $data = ['value' => $value];
+
+            foreach ($with as $property) {
+                if (method_exists($case, $property)) {
+                    $data[$property] = $case->$property();
+                } elseif ($property === 'label') {
+                    $data['label'] = $case->normalCase();
+                }
+            }
+
+            $definitions[$case->name] = $data;
+        }
+
+        return $definitions;
+    }
+
+    /**
+     * Get an enum case by its name.
+     *
+     * @throws UndefinedCaseError
+     */
+    public static function fromName(string $name): static
+    {
+        return static::tryFromName($name) ?? throw new UndefinedCaseError(static::class, $name);
+    }
+
+    /**
+     * Try to get an enum case by its name, or return null.
+     */
+    public static function tryFromName(string $name): ?static
+    {
+        foreach (static::cases() as $case) {
+            if ($case->name === $name) {
+                return $case;
+            }
+        }
+
+        return null;
     }
 
     /** Return the enum's value when it's $invoked(). */
@@ -102,7 +187,7 @@ trait InteractWithCases
 
         $class = static::class;
 
-        if (! isset($map[$class])) {
+        if (!isset($map[$class])) {
             foreach (static::cases() as $case) {
                 $map[$class][$case->name] = $case instanceof BackedEnum
                     ? $case->value
@@ -110,7 +195,7 @@ trait InteractWithCases
             }
         }
 
-        if (! array_key_exists($name, $map[$class])) {
+        if (!array_key_exists($name, $map[$class])) {
             throw new UndefinedCaseError($class, $name);
         }
 

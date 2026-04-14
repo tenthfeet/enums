@@ -94,7 +94,7 @@ class InteractWithCasesTest extends TestCase
     public function test_normal_case_formats_name(): void
     {
         $this->assertSame(
-            'ACTIVE',
+            'Active',
             Status::ACTIVE->normalCase()
         );
 
@@ -107,6 +107,34 @@ class InteractWithCasesTest extends TestCase
             'GAP Analysis And Reporting',
             CaseType::GAPAnalysisAndReporting->normalCase()
         );
+    }
+
+    public function test_normal_case_prefers_label_method(): void
+    {
+        $this->assertSame(
+            'Pending',
+            PaymentStatus::PENDING->normalCase()
+        );
+    }
+
+    /* ---------------------------------
+     | only() / except()
+     |---------------------------------*/
+
+    public function test_only_returns_specified_cases(): void
+    {
+        $cases = Status::only(['ACTIVE']);
+
+        $this->assertCount(1, $cases);
+        $this->assertSame(Status::ACTIVE, reset($cases));
+    }
+
+    public function test_except_returns_all_but_specified_cases(): void
+    {
+        $cases = Status::except(['INACTIVE']);
+
+        $this->assertCount(1, $cases);
+        $this->assertSame(Status::ACTIVE, reset($cases));
     }
 
     /* ---------------------------------
@@ -154,6 +182,28 @@ class InteractWithCasesTest extends TestCase
     }
 
     /* ---------------------------------
+     | toDefinition()
+     |---------------------------------*/
+
+    public function test_to_definition_returns_structured_map(): void
+    {
+        $definition = PaymentStatus::toDefinition(['label']);
+
+        $this->assertArrayHasKey('PENDING', $definition);
+        $this->assertSame(1, $definition['PENDING']['value']);
+        $this->assertSame('Pending', $definition['PENDING']['label']);
+    }
+
+    public function test_to_definition_handles_unit_enum(): void
+    {
+        $definition = Status::toDefinition(['label']);
+
+        $this->assertArrayHasKey('ACTIVE', $definition);
+        $this->assertSame('ACTIVE', $definition['ACTIVE']['value']);
+        $this->assertSame('Active', $definition['ACTIVE']['label']);
+    }
+
+    /* ---------------------------------
      | __invoke()
      |---------------------------------*/
 
@@ -188,5 +238,27 @@ class InteractWithCasesTest extends TestCase
         $this->expectException(UndefinedCaseError::class);
 
         Status::UNKNOWN();
+    }
+
+    /* ---------------------------------
+     | fromName() / tryFromName()
+     |---------------------------------*/
+
+    public function test_from_name_returns_case(): void
+    {
+        $this->assertSame(Status::ACTIVE, Status::fromName('ACTIVE'));
+        $this->assertSame(PaymentStatus::PAID, PaymentStatus::fromName('PAID'));
+    }
+
+    public function test_from_name_throws_for_invalid_name(): void
+    {
+        $this->expectException(UndefinedCaseError::class);
+
+        Status::fromName('INVALID');
+    }
+
+    public function test_try_from_name_returns_null_for_invalid_name(): void
+    {
+        $this->assertNull(Status::tryFromName('INVALID'));
     }
 }
